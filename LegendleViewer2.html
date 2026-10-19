@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Legendre Square Synchronization Viewer2</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    body { background:#fff; color:#000; font-family:sans-serif; padding:20px; }
+    canvas { width:100%; height:80vh; }
+    input { width:80px; padding:4px; margin-right:5px; }
+    button { padding:5px 10px; cursor:pointer; }
+  </style>
+</head>
+
+<body>
+  <h2>Legendre Square Synchronization Viewer2</h2>
+
+  <div>
+    max n:
+    <input id="nMaxInput" type="number" value="20" min="2">
+    exponent e:
+    <input id="expInput" type="number" value="2" step="0.1">
+    y-axis max:
+    <input id="yMaxInput" type="number" value="100" min="5">
+    <button onclick="updateChart()">Update</button>
+  </div>
+
+  <canvas id="chart"></canvas>
+
+  <script>
+    let chart = null;
+
+    function isPrime(n){
+      if(n < 2) return false;
+      if(n % 2 === 0) return n === 2;
+      for(let i = 3; i * i <= n; i += 2){
+        if(n % i === 0) return false;
+      }
+      return true;
+    }
+
+    function cumulativeCounts(limit){
+      let a = 0, b = 0;
+      for(let k = 3; k <= limit; k += 2){
+        if(isPrime(k)) a++;
+        else b++;
+      }
+      return { a, b };
+    }
+
+    function updateChart(){
+      const nMax = parseInt(document.getElementById("nMaxInput").value);
+      const yMax = parseInt(document.getElementById("yMaxInput").value);
+      const e = parseFloat(document.getElementById("expInput").value);
+
+      const ns = [];
+      const aList = [];
+      const bList = [];
+      const abList = [];
+      const a2N = [];
+      const b2N = [];
+      const abOverN = [];
+      const deltaA2N = [];
+      const violation = [];
+
+      let prev = null;
+
+      for(let n = 2; n <= nMax; n++){
+        const limit = Math.floor(Math.pow(n+1, e));
+        const { a, b } = cumulativeCounts(limit);
+        const denom = a + b;
+
+        const valA2 = (a * a) / denom;
+        const valB2 = (b * b) / denom;
+        const valAB = (a * b) / denom;
+
+        ns.push(n);
+        aList.push(a);
+        bList.push(b);
+        abList.push(denom);
+        a2N.push(valA2);
+        b2N.push(valB2);
+        abOverN.push(valAB);
+
+        if(prev !== null){
+          const delta = valA2 - prev;
+          deltaA2N.push(delta);
+          violation.push(delta < 0 ? valA2 : null);
+        } else {
+          deltaA2N.push(null);
+          violation.push(null);
+        }
+
+        prev = valA2;
+      }
+
+      if(chart) chart.destroy();
+
+      chart = new Chart(document.getElementById("chart"), {
+        type: "line",
+        data: {
+          labels: ns,
+          datasets: [
+            { label: "a = prime <= (n+1)^e", data: aList, borderColor: "red", borderWidth: 1, pointRadius: 0 },
+            { label: "b = composite <= (n+1)^e", data: bList, borderColor: "blue", borderWidth: 1, pointRadius: 0 },
+            { label: "a + b", data: abList, borderColor: "black", borderWidth: 1, pointRadius: 0 },
+            { label: "a^2/(a+b)", data: a2N, borderColor: "green", borderWidth: 1, pointRadius: 0 },
+            { label: "b^2/(a+b)", data: b2N, borderColor: "navy", borderWidth: 1, pointRadius: 0 },
+            { label: "ab/(a+b)", data: abOverN, borderColor: "orange", borderWidth: 1, pointRadius: 0 },
+            { label: "Δ[a^2/(a+b)]", data: deltaA2N, borderColor: "cyan", borderWidth: 1, pointRadius: 0 },
+            { label: "non-monotonic points", data: violation, borderColor: "purple", borderWidth: 0, pointRadius: 6 }
+          ]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            x:{
+              title:{ text:"n", display:true },
+              grid:{ display:false }
+            },
+            y:{
+              type:"linear",
+              title:{ text:"value", display:true },
+              min:0,
+              max:yMax,
+              grid:{
+                display:true,
+                color:"rgba(0,0,0,0.15)",
+                lineWidth:1
+              }
+            }
+          }
+        }
+      });
+    }
+
+    updateChart();
+  </script>
+</body>
+</html>
+

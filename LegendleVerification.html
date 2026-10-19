@@ -1,0 +1,86 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Legendre Conjecture Verification Tool</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 40px; line-height: 1.6; background-color: #f9f9fb; }
+        .container { max-width: 650px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        h2 { color: #2c3e50; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        input { padding: 12px; width: 120px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; }
+        button { padding: 12px 24px; cursor: pointer; background: #2980b9; color: white; border: none; border-radius: 4px; font-size: 16px; transition: background 0.3s; }
+        button:hover { background: #3498db; }
+        .result { margin-top: 30px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 18px; }
+        th, td { border: 1px solid #ecf0f1; padding: 12px; text-align: left; }
+        th { background-color: #f7f9fa; color: #34495e; }
+        .value { font-family: 'Courier New', Courier, monospace; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Legendre Conjecture Verification Tool</h2>
+
+    <p>
+        Enter a natural number <em>n</em> to calculate the structure of the interval [n², (n+1)²]. Prime staircase → monotonic increase between square numbers: 
+        <a href="https://codepen.io/Hyama/pen/019efbf0-001f-7fac-81d0-5e205a3eac79" target="_blank">Legendre Square Synchronization Viewer2</a>
+    </p>
+
+    <input type="number" id="nInput" value="10" min="1">
+    <button onclick="calculate()">Calculate</button>
+
+    <div class="result" id="output"></div>
+</div>
+
+<script>
+    function formatNumber(num) {
+        return num.toLocaleString();
+    }
+
+    function isPrime(num) {
+        if (num <= 1) return false;
+        for (let i = 2; i <= Math.sqrt(num); i++) {
+            if (num % i === 0) return false;
+        }
+        return true;
+    }
+
+    function calculate() {
+        const n = parseInt(document.getElementById('nInput').value);
+        const start = n * n;
+        const end = (n + 1) * (n + 1);
+        
+        let primeCount = 0;
+        let compositeCount = 0;
+
+        for (let i = start; i <= end; i++) {
+            if (i % 2 !== 0) {
+                if (isPrime(i)) primeCount++;
+                else compositeCount++;
+            }
+        }
+
+        const a = primeCount;
+        const b = compositeCount;
+        
+        const output = `
+            <h3>Analysis for n = ${formatNumber(n)}</h3>
+            <p>Interval: [${formatNumber(start)}, ${formatNumber(end)}]</p>
+            <table>
+                <tr><th>Component</th><th>Value</th></tr>
+                <tr><td>Odd Primes (a)</td><td class="value">${formatNumber(a)}</td></tr>
+                <tr><td>Odd Composites (b)</td><td class="value">${formatNumber(b)}</td></tr>
+                <tr><td>a²</td><td class="value">${formatNumber(a * a)}</td></tr>
+                <tr><td>2ab</td><td class="value">${formatNumber(2 * a * b)}</td></tr>
+                <tr><td>b²</td><td class="value">${formatNumber(b * b)}</td></tr>
+                <tr><td>Total (a²+2ab+b²)</td><td class="value">${formatNumber(a*a + 2*a*b + b*b)}</td></tr>
+            </table>
+        `;
+        document.getElementById('output').innerHTML = output;
+    }
+</script>
+
+</body>
+</html>
