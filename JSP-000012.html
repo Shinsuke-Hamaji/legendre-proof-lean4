@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Unified Oppermann / Goldbach Graph (Viewer2 - Sift Filter)</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 20px; }
+    #controls { margin-bottom: 20px; display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
+    canvas { max-width: 100%; margin-bottom: 40px; }
+    label { font-weight: bold; font-size: 13px; color: #475569; }
+    select, input[type="number"] { padding: 5px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; font-weight: bold; }
+    button { background: #0066cc; color: white; border: none; padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; }
+    button:hover { background: #0052a3; }
+  </style>
+</head>
+
+<body>
+  <h2>Unified Oppermann / Goldbach Graph (Viewer2 with Sift Filter)</h2>
+
+  <div id="controls">
+    <label>max n:
+      <input type="number" id="maxN" value="200" min="2" />
+    </label>
+
+    <label>Y-scale max:
+      <input type="number" id="yMax" value="80" min="1" />
+    </label>
+
+    <label>Sift Filter:
+      <select id="siftMode">
+        <option value="all">All (True Primes)</option>
+        <option value="3">3 (Exclude multiples of 3)</option>
+        <option value="3_5">3 and 5 (Exclude 3, 5)</option>
+        <option value="3_5_7">3, 5 and 7 (Exclude 3, 5, 7)</option>
+      </select>
+    </label>
+
+    <button id="runBtn">Run</button>
+  </div>
+
+  <canvas id="chartAll"></canvas>
+
+  <script>
+    function checkSift(x, mode) {
+      if (x < 2) return false;
+      if (x === 2) return true;
+      if (x % 2 === 0) return false;
+
+      const r = Math.floor(Math.sqrt(x));
+      let maxDivisor = r;
+      if (mode === '3') maxDivisor = 3;
+      else if (mode === '3_5') maxDivisor = 5;
+      else if (mode === '3_5_7') maxDivisor = 7;
+      else if (mode === 'all') maxDivisor = r;
+
+      for (let i = 3; i <= r; i += 2) {
+        if (i <= maxDivisor) {
+          if (x % i === 0 && x !== i) return false;
+        } else {
+          break;
+        }
+      }
+      return true;
+    }
+
+    function computeData(maxN, siftMode) {
+      const ns = [];
+      const aArr = [], bArr = [];
+      const MlArr = [], MrArr = [];
+      const PpArr = [], CpArr = [];
+      const HpArr = [], MpArr = [];
+      const a2Arr = [];
+      const b2Arr = [];
+      const abArr = [];
+
+      for (let n = 2; n <= maxN; n++) {
+        const center = n * n;
+        
+        // Strict Open Interval: (n^2 - n, n^2 + n) excluding endpoints and center n^2
+        let a = 0, b = 0;
+        for (let x = center - n + 1; x < center + n; x++) {
+          if (x === center) continue; // skip center n^2
+          if (x % 2 === 0) continue;  // focus on odd balance
+          if (checkSift(x, siftMode)) a++;
+          else b++;
+        }
+
+        let Ml = 0, Mr = 0, Pp = 0, Cp = 0;
+        // Strict Pairs k ranges from 1 to n-1 (so L > n^2 - n and R < n^2 + n)
+        for (let k = 1; k < n; k++) {
+          const L = center - k;
+          const R = center + k;
+          
+          if (L % 2 === 0 || R % 2 === 0) continue;
+
+          const Lp = checkSift(L, siftMode);
+          const Rp = checkSift(R, siftMode);
+
+          if (Lp && Rp) Pp++;
+          else if (Lp && !Rp) Ml++;
+          else if (!Lp && Rp) Mr++;
+          else if (!Lp && !Rp) Cp++;
+        }
+
+        const denom = (2 * a + 2 * b || 1);
+        const denom2 = (a + b || 1);
+        const a2 = (a * a) / denom;
+        const b2 = (b * b) / denom;
+        const ab = (a * b) / denom2;
+
+        const Hp = Cp + Pp;
+        const Mp = Ml + Mr;
+
+        ns.push(n);
+        aArr.push(a);
+        bArr.push(b);
+        PpArr.push(Pp);
+        CpArr.push(Cp);
+        HpArr.push(Hp);
+        MpArr.push(Mp);
+        MlArr.push(Ml);
+        MrArr.push(Mr);
+        a2Arr.push(a2);
+        b2Arr.push(b2);
+        abArr.push(ab);
+      }
+
+      return { ns, aArr, bArr, PpArr, CpArr, HpArr, MpArr, MlArr, MrArr, a2Arr, b2Arr, abArr };
+    }
+
+    let chartAll;
+
+    function makeChart(data, yMax, siftMode) {
+      const { ns, aArr, bArr, PpArr, CpArr, HpArr, MpArr, MlArr, MrArr, a2Arr, b2Arr, abArr } = data;
+
+      if (chartAll) chartAll.destroy();
+
+      chartAll = new Chart(document.getElementById('chartAll'), {
+        type: 'line',
+        data: {
+          labels: ns,
+          datasets: [
+            { label: 'a (sifted primes)', data: aArr, borderColor: 'red', borderDash: [4,4], fill: false, pointRadius: 0, borderWidth: 1 },
+            { label: 'b (sifted composites)', data: bArr, borderColor: 'blue', borderDash: [4,4], fill: false, pointRadius: 0, borderWidth: 1 },
+            { label: 'a² / (2a+2b)', data: a2Arr, borderColor: 'black', borderDash: [4,4], fill: false, pointRadius: 0, borderWidth: 1 },
+            { label: 'b² / (2a+2b)', data: b2Arr, borderColor: 'blue', borderDash: [4,4], fill: false, pointRadius: 0, borderWidth: 2 },
+            { label: 'ab / (a+b)', data: abArr, borderColor: 'magenta', borderDash: [4,4], fill: false, pointRadius: 0, borderWidth: 1 },
+
+            { label: 'Pp (Prime-Prime)', data: PpArr, borderColor: 'red', fill: false, pointRadius: 0, borderWidth: 1 },
+            { label: 'Cp (Composite-Composite)', data: CpArr, borderColor: 'gray', fill: false, pointRadius: 0, borderWidth: 1 },
+            { label: 'Hp (Cp + Pp)', data: HpArr, borderColor: 'purple', fill: false, pointRadius: 0, borderWidth: 1 },
+            { label: 'Mp (Ml + Mr)', data: MpArr, borderColor: 'brown', fill: false, pointRadius: 0, borderWidth: 1 },
+            { label: 'Ml (Left-Prime)', data: MlArr, borderColor: 'green', fill: false, pointRadius: 0, borderWidth: 1 },
+            { label: 'Mr (Right-Prime)', data: MrArr, borderColor: 'orange', fill: false, pointRadius: 0, borderWidth: 1 }
+          ]
+        },
+        options: {
+          responsive: true,
+          scales: {
+            x: {
+              title: {
+                display: true,
+                text: 'n (Interval parameter)'
+              }
+            },
+            y: {
+              min: 0,
+              max: yMax,
+              title: {
+                display: true,
+                text: 'Count'
+              }
+            }
+          },
+          plugins: {
+            title: { display: true, text: `Strict Oppermann Half-Interval Odd Composite Pair Synchronization (Sift: ${siftMode})` },
+            legend: { position: 'bottom' }
+          }
+        }
+      });
+    }
+
+    function runViewer() {
+      const maxN = parseInt(document.getElementById('maxN').value, 10) || 200;
+      const yMax = parseInt(document.getElementById('yMax').value, 10) || 80;
+      const siftMode = document.getElementById('siftMode').value;
+      makeChart(computeData(maxN, siftMode), yMax, siftMode);
+    }
+
+    document.getElementById('runBtn').addEventListener('click', runViewer);
+
+    window.onload = () => {
+      runViewer();
+    };
+  </script>
+</body>
+</html>
