@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cumulative Primes vs Napier Density & Log base n Line (2n - 2)</title>
+    <title>Cumulative Primes vs Napier Density & Log base n Line (0.5 Step Default)</title>
     <!-- Tailwind CSS for modern styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Chart.js for interactive rendering -->
@@ -17,7 +17,7 @@
     <!-- Header -->
     <header class="mb-8 border-b border-gray-800 pb-4">
         <h1 class="text-2xl font-bold text-cyan-400">⚡ Cumulative Primes vs Napier Density & Gnomon Step Resolution</h1>
-        <p class="text-sm text-gray-400 mt-1">Simultaneous plot of observed cumulative primes $\pi(n^2)$, Napier logarithmic density, Log base n Line ($2n - 2$), and adjustable Gnomon step resolution ($1.0$ integer vs $0.5$ half-step symmetry).</p>
+        <p class="text-sm text-gray-400 mt-1">Simultaneous plot of observed cumulative primes $\pi(n^2)$, Napier logarithmic density, Log base n Line ($2n - 2$), with default 0.5 half-step symmetry resolution.</p>
     </header>
 
     <!-- Controls & Metrics Grid -->
@@ -28,22 +28,22 @@
                 <h2 class="text-lg font-semibold text-gray-200 mb-4">🎛️ Parameter Settings</h2>
                 <div class="mb-4">
                     <label class="block text-sm text-gray-400 mb-1">Index Upper Bound ($n_{\max}$): <span id="nMaxVal" class="text-cyan-400 font-bold">10</span></label>
-                    <input type="range" id="nMaxSlider" min="10" max="150" value="10" class="w-full accent-cyan-500 cursor-pointer">
+                    <input type="range" id="nMaxSlider" min="2" max="150" value="10" class="w-full accent-cyan-500 cursor-pointer">
                 </div>
                 <div class="mb-2">
                     <label class="block text-sm text-gray-400 mb-1">Gnomon Resolution / Step Mode:</label>
                     <div class="flex gap-4">
                         <label class="flex items-center gap-2 cursor-pointer text-sm">
-                            <input type="radio" name="stepMode" value="1.0" checked class="accent-cyan-500"> Step: 1.0 (Integer)
+                            <input type="radio" name="stepMode" value="1.0" class="accent-cyan-500"> Step: 1.0 (Integer)
                         </label>
                         <label class="flex items-center gap-2 cursor-pointer text-sm">
-                            <input type="radio" name="stepMode" value="0.5" class="accent-cyan-500"> Step: 0.5 (Half-Step / Symmetry)
+                            <input type="radio" name="stepMode" value="0.5" checked class="accent-cyan-500"> Step: 0.5 (Half-Step / Symmetry)
                         </label>
                     </div>
                 </div>
             </div>
             <div class="text-xs text-gray-500 pt-2 border-t border-gray-800">
-                * Switches between integer Gnomon steps ($n$) and $0.5$ half-step symmetry mapping $(n + 0.5)$ for micro-interval density analysis.
+                * Initialized with $0.5$ half-step symmetry mapping $(n + 0.5)$ for micro-interval density analysis starting from $n = 1$.
             </div>
         </div>
 
@@ -58,7 +58,7 @@
         <div class="card p-5 rounded-xl shadow-lg flex flex-col justify-center items-center text-center">
             <span class="text-xs uppercase tracking-wider text-gray-400 mb-1">Napier Density Theory Value</span>
             <span id="metricNapierVal" class="text-3xl font-extrabold text-purple-400">---</span>
-            <span class="text-xs text-gray-500 mt-2">Value of $rac{n_{\max}^2}{\ln(n_{\max}^2)}$</span>
+            <span class="text-xs text-gray-500 mt-2">Value of $n_{\max}^2 / \ln(n_{\max}^2)$</span>
         </div>
     </div>
 
@@ -131,15 +131,14 @@
             const napierDensity = [];
             const tableRows = [];
 
-            for (let n = 2; n <= nMax; n += stepMode) {
-                // Round floating inaccuracies for display
+            for (let n = 1.0; n <= nMax; n += stepMode) {
                 const nFormatted = Number(n.toFixed(1));
                 const approxVal = n * n;
                 const intVal = Math.floor(approxVal);
                 
                 const piCount = intVal <= maxVal ? piTable[intVal] : piTable[maxVal];
                 const b2Val = 2 * n - 2;
-                const lnN2 = Math.log(approxVal);
+                const lnN2 = approxVal > 1 ? Math.log(approxVal) : 0;
                 const densityVal = lnN2 > 0 ? (approxVal / lnN2) : 0;
                 const diff = piCount - b2Val;
 
@@ -164,7 +163,7 @@
 
             const finalN2 = nMax * nMax;
             const finalPi = piTable[Math.floor(finalN2)];
-            const finalNapier = finalN2 / Math.log(finalN2);
+            const finalNapier = finalN2 > 1 ? (finalN2 / Math.log(finalN2)) : 0;
 
             document.getElementById('metricPiVal').innerText = finalPi;
             document.getElementById('metricNapierVal').innerText = finalNapier.toFixed(1);
