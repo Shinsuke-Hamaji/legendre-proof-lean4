@@ -1,198 +1,256 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Unified Oppermann / Goldbach Graph (Viewer2 - Sift Filter)</title>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <style>
-    body { font-family: system-ui, sans-serif; margin: 20px; }
-    #controls { margin-bottom: 20px; display: flex; gap: 15px; align-items: center; flex-wrap: wrap; }
-    canvas { max-width: 100%; margin-bottom: 40px; }
-    label { font-weight: bold; font-size: 13px; color: #475569; }
-    select, input[type="number"] { padding: 5px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; font-weight: bold; }
-    button { background: #0066cc; color: white; border: none; padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; }
-    button:hover { background: #0052a3; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cumulative Primes vs Napier Density & Log base n Line (2n - 2)</title>
+    <!-- Tailwind CSS for modern styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js for interactive rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body { background-color: #0d1117; color: #c9d1d9; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        .card { background-color: #161b22; border: 1px solid #30363d; }
+    </style>
 </head>
+<body class="p-6 max-w-7xl mx-auto">
+    <!-- Header -->
+    <header class="mb-8 border-b border-gray-800 pb-4">
+        <h1 class="text-2xl font-bold text-cyan-400">⚡ Cumulative Primes vs Napier Density & Gnomon Step Resolution</h1>
+        <p class="text-sm text-gray-400 mt-1">Simultaneous plot of observed cumulative primes $\pi(n^2)$, Napier logarithmic density, Log base n Line ($2n - 2$), and adjustable Gnomon step resolution ($1.0$ integer vs $0.5$ half-step symmetry).</p>
+    </header>
 
-<body>
-  <h2>Unified Oppermann / Goldbach Graph (Viewer2 with Sift Filter)</h2>
+    <!-- Controls & Metrics Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <!-- Control Panel -->
+        <div class="card p-5 rounded-xl shadow-lg flex flex-col justify-between">
+            <div>
+                <h2 class="text-lg font-semibold text-gray-200 mb-4">🎛️ Parameter Settings</h2>
+                <div class="mb-4">
+                    <label class="block text-sm text-gray-400 mb-1">Index Upper Bound ($n_{\max}$): <span id="nMaxVal" class="text-cyan-400 font-bold">10</span></label>
+                    <input type="range" id="nMaxSlider" min="10" max="150" value="10" class="w-full accent-cyan-500 cursor-pointer">
+                </div>
+                <div class="mb-2">
+                    <label class="block text-sm text-gray-400 mb-1">Gnomon Resolution / Step Mode:</label>
+                    <div class="flex gap-4">
+                        <label class="flex items-center gap-2 cursor-pointer text-sm">
+                            <input type="radio" name="stepMode" value="1.0" checked class="accent-cyan-500"> Step: 1.0 (Integer)
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer text-sm">
+                            <input type="radio" name="stepMode" value="0.5" class="accent-cyan-500"> Step: 0.5 (Half-Step / Symmetry)
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="text-xs text-gray-500 pt-2 border-t border-gray-800">
+                * Switches between integer Gnomon steps ($n$) and $0.5$ half-step symmetry mapping $(n + 0.5)$ for micro-interval density analysis.
+            </div>
+        </div>
 
-  <div id="controls">
-    <label>max n:
-      <input type="number" id="maxN" value="200" min="2" />
-    </label>
+        <!-- Metric Card 1 -->
+        <div class="card p-5 rounded-xl shadow-lg flex flex-col justify-center items-center text-center">
+            <span class="text-xs uppercase tracking-wider text-gray-400 mb-1">Final Observed $\pi(n_{\max}^2)$</span>
+            <span id="metricPiVal" class="text-3xl font-extrabold text-emerald-400">---</span>
+            <span class="text-xs text-gray-500 mt-2">Total primes up to square limit</span>
+        </div>
 
-    <label>Y-scale max:
-      <input type="number" id="yMax" value="80" min="1" />
-    </label>
+        <!-- Metric Card 2 -->
+        <div class="card p-5 rounded-xl shadow-lg flex flex-col justify-center items-center text-center">
+            <span class="text-xs uppercase tracking-wider text-gray-400 mb-1">Napier Density Theory Value</span>
+            <span id="metricNapierVal" class="text-3xl font-extrabold text-purple-400">---</span>
+            <span class="text-xs text-gray-500 mt-2">Value of $rac{n_{\max}^2}{\ln(n_{\max}^2)}$</span>
+        </div>
+    </div>
 
-    <label>Sift Filter:
-      <select id="siftMode">
-        <option value="all">All (True Primes)</option>
-        <option value="3">3 (Exclude multiples of 3)</option>
-        <option value="3_5">3 and 5 (Exclude 3, 5)</option>
-        <option value="3_5_7">3, 5 and 7 (Exclude 3, 5, 7)</option>
-      </select>
-    </label>
+    <!-- Main Chart Section -->
+    <div class="card p-6 rounded-xl shadow-lg mb-8">
+        <h2 class="text-lg font-semibold text-gray-200 mb-4">📈 Step-Resolution Synchronized Density Chart</h2>
+        <div class="relative w-full" style="height: 400px;">
+            <canvas id="densityChart"></canvas>
+        </div>
+    </div>
 
-    <button id="runBtn">Run</button>
-  </div>
+    <!-- Data Inspection Table -->
+    <div class="card p-6 rounded-xl shadow-lg">
+        <h2 class="text-lg font-semibold text-gray-200 mb-4">🔍 Comparison Data Table (Gnomon Resolution View)</h2>
+        <div class="overflow-x-auto max-h-64">
+            <table class="w-full text-left border-collapse text-sm">
+                <thead>
+                    <tr class="border-b border-gray-800 text-gray-400">
+                        <th class="p-2">Index / Step ($n$)</th>
+                        <th class="p-2">Effective Point ($n^2$ or interpolated)</th>
+                        <th class="p-2 text-emerald-400">Observed Cumulative $\pi$</th>
+                        <th class="p-2 text-amber-400">Log base n Line ($2n - 2$)</th>
+                        <th class="p-2 text-purple-400">Napier Density</th>
+                        <th class="p-2 text-cyan-300">Difference</th>
+                    </tr>
+                </thead>
+                <tbody id="dataTableBody" class="divide-y divide-gray-800 text-gray-300">
+                    <!-- Dynamically populated -->
+                </tbody>
+            </table>
+        </div>
+    </div>
 
-  <canvas id="chartAll"></canvas>
+    <!-- JavaScript Simulation Logic -->
+    <script>
+        let chartInstance = null;
 
-  <script>
-    function checkSift(x, mode) {
-      if (x < 2) return false;
-      if (x === 2) return true;
-      if (x % 2 === 0) return false;
-
-      const r = Math.floor(Math.sqrt(x));
-      let maxDivisor = r;
-      if (mode === '3') maxDivisor = 3;
-      else if (mode === '3_5') maxDivisor = 5;
-      else if (mode === '3_5_7') maxDivisor = 7;
-      else if (mode === 'all') maxDivisor = r;
-
-      for (let i = 3; i <= r; i += 2) {
-        if (i <= maxDivisor) {
-          if (x % i === 0 && x !== i) return false;
-        } else {
-          break;
-        }
-      }
-      return true;
-    }
-
-    function computeData(maxN, siftMode) {
-      const ns = [];
-      const aArr = [], bArr = [];
-      const MlArr = [], MrArr = [];
-      const PpArr = [], CpArr = [];
-      const HpArr = [], MpArr = [];
-      const a2Arr = [];
-      const b2Arr = [];
-      const abArr = [];
-
-      for (let n = 2; n <= maxN; n++) {
-        const center = n * n;
-        
-        // Strict Open Interval: (n^2 - n, n^2 + n) excluding endpoints and center n^2
-        let a = 0, b = 0;
-        for (let x = center - n + 1; x < center + n; x++) {
-          if (x === center) continue; // skip center n^2
-          if (x % 2 === 0) continue;  // focus on odd balance
-          if (checkSift(x, siftMode)) a++;
-          else b++;
-        }
-
-        let Ml = 0, Mr = 0, Pp = 0, Cp = 0;
-        // Strict Pairs k ranges from 1 to n-1 (so L > n^2 - n and R < n^2 + n)
-        for (let k = 1; k < n; k++) {
-          const L = center - k;
-          const R = center + k;
-          
-          if (L % 2 === 0 || R % 2 === 0) continue;
-
-          const Lp = checkSift(L, siftMode);
-          const Rp = checkSift(R, siftMode);
-
-          if (Lp && Rp) Pp++;
-          else if (Lp && !Rp) Ml++;
-          else if (!Lp && Rp) Mr++;
-          else if (!Lp && !Rp) Cp++;
-        }
-
-        const denom = (2 * a + 2 * b || 1);
-        const denom2 = (a + b || 1);
-        const a2 = (a * a) / denom;
-        const b2 = (b * b) / denom;
-        const ab = (a * b) / denom2;
-
-        const Hp = Cp + Pp;
-        const Mp = Ml + Mr;
-
-        ns.push(n);
-        aArr.push(a);
-        bArr.push(b);
-        PpArr.push(Pp);
-        CpArr.push(Cp);
-        HpArr.push(Hp);
-        MpArr.push(Mp);
-        MlArr.push(Ml);
-        MrArr.push(Mr);
-        a2Arr.push(a2);
-        b2Arr.push(b2);
-        abArr.push(ab);
-      }
-
-      return { ns, aArr, bArr, PpArr, CpArr, HpArr, MpArr, MlArr, MrArr, a2Arr, b2Arr, abArr };
-    }
-
-    let chartAll;
-
-    function makeChart(data, yMax, siftMode) {
-      const { ns, aArr, bArr, PpArr, CpArr, HpArr, MpArr, MlArr, MrArr, a2Arr, b2Arr, abArr } = data;
-
-      if (chartAll) chartAll.destroy();
-
-      chartAll = new Chart(document.getElementById('chartAll'), {
-        type: 'line',
-        data: {
-          labels: ns,
-          datasets: [
-            { label: 'a (sifted primes)', data: aArr, borderColor: 'red', borderDash: [4,4], fill: false, pointRadius: 0, borderWidth: 1 },
-            { label: 'b (sifted composites)', data: bArr, borderColor: 'blue', borderDash: [4,4], fill: false, pointRadius: 0, borderWidth: 1 },
-            { label: 'a² / (2a+2b)', data: a2Arr, borderColor: 'black', borderDash: [4,4], fill: false, pointRadius: 0, borderWidth: 1 },
-            { label: 'b² / (2a+2b)', data: b2Arr, borderColor: 'blue', borderDash: [4,4], fill: false, pointRadius: 0, borderWidth: 2 },
-            { label: 'ab / (a+b)', data: abArr, borderColor: 'magenta', borderDash: [4,4], fill: false, pointRadius: 0, borderWidth: 1 },
-
-            { label: 'Pp (Prime-Prime)', data: PpArr, borderColor: 'red', fill: false, pointRadius: 0, borderWidth: 1 },
-            { label: 'Cp (Composite-Composite)', data: CpArr, borderColor: 'gray', fill: false, pointRadius: 0, borderWidth: 1 },
-            { label: 'Hp (Cp + Pp)', data: HpArr, borderColor: 'purple', fill: false, pointRadius: 0, borderWidth: 1 },
-            { label: 'Mp (Ml + Mr)', data: MpArr, borderColor: 'brown', fill: false, pointRadius: 0, borderWidth: 1 },
-            { label: 'Ml (Left-Prime)', data: MlArr, borderColor: 'green', fill: false, pointRadius: 0, borderWidth: 1 },
-            { label: 'Mr (Right-Prime)', data: MrArr, borderColor: 'orange', fill: false, pointRadius: 0, borderWidth: 1 }
-          ]
-        },
-        options: {
-          responsive: true,
-          scales: {
-            x: {
-              title: {
-                display: true,
-                text: 'n (Interval parameter)'
-              }
-            },
-            y: {
-              min: 0,
-              max: yMax,
-              title: {
-                display: true,
-                text: 'Count'
-              }
+        function sieve(maxLimit) {
+            const isPrime = new Uint8Array(maxLimit + 1);
+            isPrime.fill(1);
+            isPrime[0] = 0;
+            isPrime[1] = 0;
+            for (let p = 2; p * p <= maxLimit; p++) {
+                if (isPrime[p]) {
+                    for (let i = p * p; i <= maxLimit; i += p) {
+                        isPrime[i] = 0;
+                    }
+                }
             }
-          },
-          plugins: {
-            title: { display: true, text: `Strict Oppermann Half-Interval Odd Composite Pair Synchronization (Sift: ${siftMode})` },
-            legend: { position: 'bottom' }
-          }
+            const pi = new Int32Array(maxLimit + 1);
+            let count = 0;
+            for (let i = 0; i <= maxLimit; i++) {
+                if (isPrime[i]) count++;
+                pi[i] = count;
+            }
+            return pi;
         }
-      });
-    }
 
-    function runViewer() {
-      const maxN = parseInt(document.getElementById('maxN').value, 10) || 200;
-      const yMax = parseInt(document.getElementById('yMax').value, 10) || 80;
-      const siftMode = document.getElementById('siftMode').value;
-      makeChart(computeData(maxN, siftMode), yMax, siftMode);
-    }
+        function updateDashboard() {
+            const nMax = parseFloat(document.getElementById('nMaxSlider').value);
+            const stepMode = parseFloat(document.querySelector('input[name="stepMode"]:checked').value);
+            document.getElementById('nMaxVal').innerText = nMax;
 
-    document.getElementById('runBtn').addEventListener('click', runViewer);
+            const maxVal = Math.ceil(nMax * nMax);
+            const piTable = sieve(maxVal);
 
-    window.onload = () => {
-      runViewer();
-    };
-  </script>
+            const labels = [];
+            const piCounts = [];
+            const line2nMinus2 = [];
+            const napierDensity = [];
+            const tableRows = [];
+
+            for (let n = 2; n <= nMax; n += stepMode) {
+                // Round floating inaccuracies for display
+                const nFormatted = Number(n.toFixed(1));
+                const approxVal = n * n;
+                const intVal = Math.floor(approxVal);
+                
+                const piCount = intVal <= maxVal ? piTable[intVal] : piTable[maxVal];
+                const b2Val = 2 * n - 2;
+                const lnN2 = Math.log(approxVal);
+                const densityVal = lnN2 > 0 ? (approxVal / lnN2) : 0;
+                const diff = piCount - b2Val;
+
+                labels.push('n = ' + nFormatted);
+                piCounts.push(piCount);
+                line2nMinus2.push(b2Val.toFixed(1));
+                napierDensity.push(densityVal.toFixed(2));
+
+                if (nFormatted <= 15 || nFormatted % Math.max(1, Math.floor(nMax / 10)) === 0 || nFormatted === nMax) {
+                    tableRows.push(`
+                        <tr class="hover:bg-gray-800/50">
+                            <td class="p-2 font-mono text-cyan-400">n = ${nFormatted}</td>
+                            <td class="p-2 font-mono text-gray-400">~${approxVal.toFixed(1)}</td>
+                            <td class="p-2 font-mono text-emerald-400 font-bold">${piCount}</td>
+                            <td class="p-2 font-mono text-amber-400">${b2Val.toFixed(1)}</td>
+                            <td class="p-2 font-mono text-purple-400">${densityVal.toFixed(2)}</td>
+                            <td class="p-2 font-mono text-cyan-300 font-bold">${diff >= 0 ? '+' : ''}${diff.toFixed(1)}</td>
+                        </tr>
+                    `);
+                }
+            }
+
+            const finalN2 = nMax * nMax;
+            const finalPi = piTable[Math.floor(finalN2)];
+            const finalNapier = finalN2 / Math.log(finalN2);
+
+            document.getElementById('metricPiVal').innerText = finalPi;
+            document.getElementById('metricNapierVal').innerText = finalNapier.toFixed(1);
+            document.getElementById('dataTableBody').innerHTML = tableRows.join('');
+
+            renderChart(labels, piCounts, line2nMinus2, napierDensity, nMax, stepMode);
+        }
+
+        function renderChart(labels, piCounts, line2n2, napierDens, nMax, stepMode) {
+            const ctx = document.getElementById('densityChart').getContext('2d');
+            
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+
+            let tickStep = stepMode === 0.5 ? 2 : 1;
+            if (nMax > 50) tickStep = stepMode === 0.5 ? 10 : 5;
+            if (nMax > 100) tickStep = stepMode === 0.5 ? 20 : 10;
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Observed Cumulative Primes π(n²)',
+                            data: piCounts,
+                            borderColor: '#34d399',
+                            backgroundColor: '#34d39920',
+                            borderWidth: 2.5,
+                            tension: 0.1
+                        },
+                        {
+                            label: 'Log base n Line (2n - 2)',
+                            data: line2n2,
+                            borderColor: '#fbbf24',
+                            borderWidth: 2,
+                            borderDash: [4, 4],
+                            tension: 0.1
+                        },
+                        {
+                            label: 'Napier Density n² / ln(n²)',
+                            data: napierDens,
+                            borderColor: '#c084fc',
+                            backgroundColor: '#c084fc20',
+                            borderWidth: 2,
+                            borderDash: [2, 2],
+                            tension: 0.1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            title: { display: true, text: 'Square Index & Step Resolution (' + (stepMode === 0.5 ? '0.5 Half-Step' : '1.0 Integer') + ')', color: '#9ca3af' },
+                            grid: { color: '#30363d', display: true },
+                            ticks: {
+                                color: '#9ca3af',
+                                stepSize: tickStep,
+                                autoSkip: true,
+                                maxTicksLimit: 30
+                            }
+                        },
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            title: { display: true, text: 'Prime Count & Theoretical Value', color: '#34d399' },
+                            grid: { color: '#30363d' },
+                            ticks: { color: '#9ca3af' }
+                        }
+                    },
+                    plugins: {
+                        legend: { labels: { color: '#c9d1d9' } }
+                    }
+                }
+            });
+        }
+
+        document.getElementById('nMaxSlider').addEventListener('input', updateDashboard);
+        document.querySelectorAll('input[name="stepMode"]').forEach(radio => {
+            radio.addEventListener('change', updateDashboard);
+        });
+
+        updateDashboard();
+    </script>
 </body>
 </html>
