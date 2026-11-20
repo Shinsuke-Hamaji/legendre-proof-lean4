@@ -5,9 +5,9 @@ set_option linter.unusedVariables false
 
 namespace NaturalMathematics
 
-/-! # Step 1: Synchronized Infinity & 1D Tree -/
+/-! # Step 1: Peano Root & 1D Synchronized Infinite Tree -/
 
-/-- Synchronized Infinity Principle -/
+/-- Synchronized Infinity Principle (Peano +1 step with origin 1) -/
 theorem synchronized_infinity_principle :
     ∃ (f : ℕ → ℕ), Function.Injective f ∧ ∃ y, ∀ x, f x ≠ y := by
   refine ⟨fun x => x + 1, ?_, 0, ?_⟩
@@ -16,7 +16,7 @@ theorem synchronized_infinity_principle :
   · intro x h
     exact Nat.succ_ne_zero x h
 
-/-- 1D Synchronized Infinite Tree -/
+/-- 1D Synchronized Infinite Tree rooted at 1 -/
 inductive SynchronizedInfiniteTree1D : ℕ → Type
   | root : SynchronizedInfiniteTree1D 1
   | step (n : ℕ) (hn : n > 0) : SynchronizedInfiniteTree1D n → SynchronizedInfiniteTree1D (n + 1)
@@ -51,9 +51,72 @@ theorem ramanujacharyulu_synchronized_1d_tree (n : ℕ) (hn : n ≥ 1) :
       omega
     · exact generation_sync_1d_lt_value (SynchronizedInfiniteTree1D.step k (by omega) t)
 
-/-! # Step 2: Square Geometry, Prime Separation (1 vs 2), & 0.5-Pitch Composite Emergence -/
+/-! # Step 2: Pitch Determined by Prime Definition & Mutual Catch-Up (1 → 1.5 → 2) -/
 
-/-- Square-Rectangle Partition & Nesting -/
+/-- Composite number definition (m ≥ 2 and not prime) -/
+def IsComposite (m : ℕ) : Prop := 2 ≤ m ∧ ¬ Nat.Prime m
+
+/--
+  Half-integer generative pitch index `k` representing `n = k / 2`:
+  - `k = 2` (`n = 1.0`): Natural unit `1` (root)
+  - `k = 3` (`n = 1.5`): Prime `2` emerges from prime definition, yet prime pitch alone
+    cannot keep pace with the full progression by itself.
+  - `k = 4` (`n = 2.0`): Prime `3` and minimal composite `4 = 2^2` emerge together,
+    where composite filling steps in to cover what one side alone cannot catch up with.
+-/
+def PitchAnchorValue (k : ℕ) : ℕ :=
+  if k = 2 then 1
+  else if k = 3 then 2
+  else if k = 4 then 4
+  else (k / 2) ^ 2
+
+@[simp] lemma pitchAnchorValue_two : PitchAnchorValue 2 = 1 := by
+  simp [PitchAnchorValue]
+
+@[simp] lemma pitchAnchorValue_three : PitchAnchorValue 3 = 2 := by
+  simp [PitchAnchorValue]
+
+@[simp] lemma pitchAnchorValue_four : PitchAnchorValue 4 = 4 := by
+  simp [PitchAnchorValue]
+
+/--
+  At the initial prime-2 pitch (`k = 3`, `n = 1.5`), one side alone cannot catch up with
+  the generative rhythm: composites have not yet emerged (`m ≤ 2`), and only once `k = 4`
+  (`n = 2.0`) is reached does composite filling (`4 = 2^2`) join alongside prime `3`,
+  continuing under the same invariant rule for all `n ≥ 2`.
+-/
+theorem prime_definition_determines_pitch_and_composite_filling (n : ℕ) (hn : 2 ≤ n) :
+    (¬ Nat.Prime (PitchAnchorValue 2) ∧ Nat.Prime (PitchAnchorValue 3)) ∧
+    (∀ m : ℕ, m ≤ PitchAnchorValue 3 → ¬ IsComposite m) ∧
+    (∃ c : ℕ, PitchAnchorValue 3 < c ∧ c ≤ PitchAnchorValue 4 ∧ IsComposite c) ∧
+    (Nat.Prime 3 ∧ IsComposite (PitchAnchorValue 4) ∧
+      ∀ c : ℕ, IsComposite c → PitchAnchorValue 4 ≤ c) ∧
+    IsComposite (n ^ 2) := by
+  refine ⟨⟨?_, ?_⟩, ?_, ?_, ?_, ?_⟩
+  · simp [Nat.not_prime_one]
+  · simp [Nat.prime_two]
+  · intro m hm ⟨_, hnp⟩
+    simp at hm
+    have hm_eq : m = 2 := by omega
+    subst hm_eq
+    exact hnp Nat.prime_two
+  · refine ⟨4, ?_, ?_, ?_, ?_⟩
+    · simp
+    · simp
+    · decide
+    · decide
+  · refine ⟨Nat.prime_three, ⟨by decide, by decide⟩, ?_⟩
+    intro c ⟨_, hcnp⟩
+    by_contra hlt
+    simp at hlt
+    have hcases : c = 2 ∨ c = 3 := by omega
+    rcases hcases with rfl | rfl
+    · exact hcnp Nat.prime_two
+    · exact hcnp Nat.prime_three
+  · refine ⟨by nlinarith, ?_⟩
+    exact Nat.Prime.not_prime_pow (by omega)
+
+/-- Square-Rectangle Partition & Nesting along the Invariant Rule -/
 theorem quadrilateral_theorem (n : ℕ) (hn : 2 ≤ n) :
     n ^ 2 = n * (n - 1) + n ∧
     n * (n + 1) = n ^ 2 + n ∧
@@ -85,35 +148,7 @@ theorem quadrilateral_theorem (n : ℕ) (hn : 2 ≤ n) :
       _ = (n + 1) ^ 2 := (sq (n + 1)).symm
   exact ⟨h1, h2, h3, h4, h5, h6⟩
 
-/-- Composite number definition (m ≥ 2 and not prime) -/
-def IsComposite (m : ℕ) : Prop := 2 ≤ m ∧ ¬ Nat.Prime m
-
-/--
-  Separation of 1 and 2 via prime definition, absence of composites in m ≤ 2,
-  minimal composite emergence at 2^2 = 4 (0.5 square pitch from 1-2 to 1-2-3-4),
-  and composite existence at n^2 for n ≥ 2.
--/
-theorem composite_emergence_half_step_inevitability (n : ℕ) (hn : 2 ≤ n) :
-    (¬ Nat.Prime 1 ∧ Nat.Prime 2) ∧
-    (∀ m : ℕ, m ≤ 2 → ¬ IsComposite m) ∧
-    (IsComposite (2 ^ 2) ∧ ∀ c : ℕ, IsComposite c → 2 ^ 2 ≤ c) ∧
-    IsComposite (n ^ 2) := by
-  refine ⟨⟨Nat.not_prime_one, Nat.prime_two⟩, ?_, ?_, ?_⟩
-  · intro m _ ⟨hm2, hnp⟩
-    have hm_eq : m = 2 := by omega
-    subst hm_eq
-    exact hnp Nat.prime_two
-  · refine ⟨⟨by norm_num, by decide⟩, ?_⟩
-    intro c ⟨_, hcnp⟩
-    by_contra hlt
-    have hcases : c = 2 ∨ c = 3 := by omega
-    rcases hcases with rfl | rfl
-    · exact hcnp Nat.prime_two
-    · exact hcnp Nat.prime_three
-  · refine ⟨by nlinarith, ?_⟩
-    exact Nat.Prime.not_prime_pow (by omega)
-
-/-- Invariant square pitch log_n(n^2) = 2 -/
+/-- Invariant square scaling exponent log_n(n^2) = 2 across the pitch progression -/
 def structural_capacity_equilibrium (n : ℕ) : Prop :=
   2 ≤ n ∧
   (0 : ℝ) < Real.log (n : ℝ) ∧
@@ -176,8 +211,8 @@ end NaturalMathematics
 
 /-! # Verification -/
 #print axioms NaturalMathematics.synchronized_infinity_principle
+#print axioms NaturalMathematics.prime_definition_determines_pitch_and_composite_filling
 #print axioms NaturalMathematics.quadrilateral_theorem
-#print axioms NaturalMathematics.composite_emergence_half_step_inevitability
 #print axioms NaturalMathematics.capacity_equilibrium_holds
 #print axioms NaturalMathematics.oppermann_slots_nonempty_of_conjecture
 #print axioms NaturalMathematics.prove_shifted_legendre_of_oppermann
