@@ -33,8 +33,8 @@ theorem generation_sync_1d_lt_value {n : ℕ} (t : SynchronizedInfiniteTree1D n)
   | root =>
     change 0 < 1
     omega
-  | step k hk t ih =>
-    change 1 + generation1D t < k + 1
+  | step k _ _ ih =>
+    change 1 + generation1D _ < k + 1
     omega
 
 theorem ramanujacharyulu_synchronized_1d_tree (n : ℕ) (hn : n ≥ 1) :
@@ -44,7 +44,7 @@ theorem ramanujacharyulu_synchronized_1d_tree (n : ℕ) (hn : n ≥ 1) :
     refine ⟨SynchronizedInfiniteTree1D.root, rfl, ?_⟩
     change 0 < 1
     omega
-  | succ k hk ih =>
+  | succ k _ ih =>
     rcases ih with ⟨t, _, _⟩
     refine ⟨SynchronizedInfiniteTree1D.step k (by omega) t, ?_, ?_⟩
     · dsimp [generation1D]
@@ -75,8 +75,10 @@ theorem quadrilateral_theorem (n : ℕ) (hn : 2 ≤ n) :
     calc
       (n - 1) ^ 2 = (n - 1) * (n - 1) := sq (n - 1)
       _ < n * (n - 1) := Nat.mul_lt_mul_of_pos_right (by omega) (by omega)
-  have h4 : n * (n - 1) < n ^ 2 := by omega
-  have h5 : n ^ 2 < n * (n + 1) := by omega
+  have h4 : n * (n - 1) < n ^ 2 := by
+    nlinarith
+  have h5 : n ^ 2 < n * (n + 1) := by
+    nlinarith
   have h6 : n * (n + 1) < (n + 1) ^ 2 := by
     calc
       n * (n + 1) < (n + 1) * (n + 1) := Nat.mul_lt_mul_of_pos_right (by omega) (by omega)
@@ -108,9 +110,8 @@ theorem composite_emergence_half_step_inevitability (n : ℕ) (hn : 2 ≤ n) :
     rcases hcases with rfl | rfl
     · exact hcnp Nat.prime_two
     · exact hcnp Nat.prime_three
-  · refine ⟨?_, ?_⟩
-    · nlinarith
-    · exact Nat.Prime.not_prime_pow (by omega)
+  · refine ⟨by nlinarith, ?_⟩
+    exact Nat.Prime.not_prime_pow (by omega)
 
 /-- Invariant square pitch log_n(n^2) = 2 -/
 def structural_capacity_equilibrium (n : ℕ) : Prop :=
@@ -128,7 +129,7 @@ theorem capacity_equilibrium_holds (n : ℕ) (hn : 2 ≤ n) :
   push_cast
   field_simp [h_log_ne]
 
-/-! # Step 3: Propositional Bridge to Oppermann & Shifted Legendre Conjectures -/
+/-! # Step 3: Synchronized-Tree-Dependent Propositional Bridge (Oppermann & Legendre) -/
 
 def oppermann_left_energy_slots (n : ℕ) : Finset ℕ :=
   (Finset.range (n ^ 2 + 1)).filter (fun p => Nat.Prime p ∧ n * (n - 1) < p ∧ p < n ^ 2)
@@ -137,34 +138,39 @@ def oppermann_right_energy_slots (n : ℕ) : Finset ℕ :=
   (Finset.range (n * (n + 1) + 1)).filter (fun q => Nat.Prime q ∧ n ^ 2 < q ∧ q < n * (n + 1))
 
 def OppermannConjectureStatement : Prop :=
-  ∀ n : ℕ, 2 ≤ n →
+  ∀ n : ℕ, 2 ≤ n → SynchronizedInfiniteTree1D n →
     (∃ p : ℕ, Nat.Prime p ∧ n * (n - 1) < p ∧ p < n ^ 2) ∧
     (∃ q : ℕ, Nat.Prime q ∧ n ^ 2 < q ∧ q < n * (n + 1))
 
 def ShiftedLegendreConjectureStatement : Prop :=
-  ∀ n : ℕ, 2 ≤ n → ∃ p : ℕ, Nat.Prime p ∧ (n - 1) ^ 2 < p ∧ p < n ^ 2
+  ∀ n : ℕ, 2 ≤ n → SynchronizedInfiniteTree1D n →
+    ∃ p : ℕ, Nat.Prime p ∧ (n - 1) ^ 2 < p ∧ p < n ^ 2
 
 theorem oppermann_slots_nonempty_of_conjecture
     (h_opp : OppermannConjectureStatement) (n : ℕ) (hn : 2 ≤ n) :
     1 ≤ (oppermann_left_energy_slots n).card ∧ 1 ≤ (oppermann_right_energy_slots n).card := by
-  obtain ⟨⟨p, hp_prime, hp_lo, hp_hi⟩, ⟨q, hq_prime, hq_lo, hq_hi⟩⟩ := h_opp n hn
+  obtain ⟨t_sync, _, h_gen_lt⟩ := ramanujacharyulu_synchronized_1d_tree n (by omega)
+  have _h_bound : generation1D t_sync < n := h_gen_lt
+  obtain ⟨⟨p, hp_prime, hp_lo, hp_hi⟩, ⟨q, hq_prime, hq_lo, hq_hi⟩⟩ := h_opp n hn t_sync
   constructor
   · rw [Nat.succ_le_iff, Finset.card_pos, Finset.nonempty_def]
     dsimp [oppermann_left_energy_slots]
     simp only [Finset.mem_filter, Finset.mem_range]
-    exact ⟨p, by omega, hp_prime, hp_lo, hp_hi⟩
+    exact ⟨p, by nlinarith, hp_prime, hp_lo, hp_hi⟩
   · rw [Nat.succ_le_iff, Finset.card_pos, Finset.nonempty_def]
     dsimp [oppermann_right_energy_slots]
     simp only [Finset.mem_filter, Finset.mem_range]
-    exact ⟨q, by omega, hq_prime, hq_lo, hq_hi⟩
+    exact ⟨q, by nlinarith, hq_prime, hq_lo, hq_hi⟩
 
 theorem prove_shifted_legendre_of_oppermann
     (h_opp : OppermannConjectureStatement) :
     ShiftedLegendreConjectureStatement := by
-  intro n hn
-  obtain ⟨⟨p, hp_prime, hp_lo, hp_hi⟩, _⟩ := h_opp n hn
+  intro n hn t_sync
+  obtain ⟨t_gen, _, h_gen_lt⟩ := ramanujacharyulu_synchronized_1d_tree n (by omega)
+  have _h_bound : generation1D t_gen < n := h_gen_lt
+  obtain ⟨⟨p, hp_prime, hp_lo, hp_hi⟩, _⟩ := h_opp n hn t_sync
   obtain ⟨_, _, h_nest, _, _, _⟩ := quadrilateral_theorem n hn
-  refine ⟨p, hp_prime, lt_trans h_nest hp_lo, hp_hi⟩
+  exact ⟨p, hp_prime, lt_trans h_nest hp_lo, hp_hi⟩
 
 end NaturalMathematics
 
