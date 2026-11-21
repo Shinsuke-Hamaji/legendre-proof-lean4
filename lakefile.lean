@@ -8,7 +8,7 @@ require mathlib from git
   "gh:leanprover-community/mathlib4.git" @ "v4.32.0"
 
 require lean4lean from git
-  "gh:digama0/lean4lean.git" @ "main"
+  "gh:digama0/lean4lean.git"
 
 @[default_target]
 lean_lib «JSP000012» where
