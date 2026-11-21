@@ -1,0 +1,18 @@
+name = "legendre-proof-lean4"
+version = "0.1.0"
+defaultTargets = ["JSP000012"]
+
+[[lean_lib]]
+name = "JSP000012"
+srcDir = "."
+roots = ["JSP-000012"]
+
+[[require]]
+name = "mathlib"
+scope = "leanprover-community"
+rev = "v4.32.0"
+
+[[require]]
+name = "lean4lean"
+git = "https://github.com"
+rev = "main"
