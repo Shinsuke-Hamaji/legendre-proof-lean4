@@ -15,23 +15,31 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Elan and Lean 4
-        uses: leanprover/lean-action@v1
+        run: |
+          curl https://lean-lang.org -sSf | sh -s -- -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> $GITHUB_PATH
 
-      - name: Build target library (Standard C++ Kernel)
+      - name: Generate lake-manifest.json and fetch Mathlib cache
+        run: |
+          lake update
+          lake exe cache get
+
+      - name: Build JSP-000012 (Standard C++ Kernel)
         run: lake build JSP000012
 
       - name: Run lean4lean (Independent Lean-in-Lean Kernel)
         run: lake exe lean4lean --fresh JSP-000012
 
-      - name: Setup Rust for nanoda
+      - name: Setup Rust and build nanoda (Independent Rust Kernel)
         uses: dtolnay/rust-toolchain@stable
 
-      - name: Build nanoda (Independent Rust Kernel)
+      - name: Build and verify with nanoda
         run: |
           git clone https://github.com /tmp/nanoda_lib
           cargo build --release --manifest-path /tmp/nanoda_lib/Cargo.toml
-
-      - name: Export environment and verify with nanoda
-        run: |
-          lake env lean --export=exported_env.txt JSP-000012.lean
-          /tmp/nanoda_lib/target/release/nanoda_bin --help
+          git clone https://github.com /tmp/lean4export
+          cp lean-toolchain /tmp/lean4export/
+          lake --dir=/tmp/lean4export build
+          lake env /tmp/lean4export/.lake/build/bin/lean4export JSP-000012 > exported_env.ndjson
+          echo '{"export_file_path": "exported_env.ndjson", "num_threads": 2}' > nanoda_config.json
+          /tmp/nanoda_lib/target/release/nanoda_bin nanoda_config.json
