@@ -15,11 +15,12 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Configure git shortcut
-        run: git config --global url."https://github.com".insteadOf "gh:"
+        run: git config --global url."https://github.com/".insteadOf "gh:"
 
       - name: Install Elan and Lean 4
         run: |
-          curl -sSfL "https://githubusercontent.com" | sh -s -- -y --default-toolchain none
+          git clone --depth 1 gh:leanprover/elan.git /tmp/elan
+          sh /tmp/elan/elan-init.sh -y --default-toolchain none
           echo "$HOME/.elan/bin" >> $GITHUB_PATH
 
       - name: Generate lake-manifest.json and fetch Mathlib cache
@@ -43,6 +44,11 @@ jobs:
           git clone gh:leanprover/lean4export.git /tmp/lean4export
           cp lean-toolchain /tmp/lean4export/
           lake --dir=/tmp/lean4export build
+
+          lake env /tmp/lean4export/.lake/build/bin/lean4export JSP-000012 > exported_env.ndjson
+          echo '{"export_file_path": "exported_env.ndjson", "num_threads": 2}' > nanoda_config.json
+          /tmp/nanoda_lib/target/release/nanoda_bin nanoda_config.json
+
           lake env /tmp/lean4export/.lake/build/bin/lean4export JSP-000012 > exported_env.ndjson
           echo '{"export_file_path": "exported_env.ndjson", "num_threads": 2}' > nanoda_config.json
           /tmp/nanoda_lib/target/release/nanoda_bin nanoda_config.json
