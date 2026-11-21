@@ -5,10 +5,10 @@ package «legendre-proof-lean4» where
   version := v!"0.1.0"
 
 require mathlib from git
-  ("https://github.com" ++ "leanprover-community/mathlib4.git") @ "v4.32.0"
+  ("https:" ++ "//://github.com") @ "v4.32.0"
 
 require lean4lean from git
-  ("https://github.com" ++ "digama0/lean4lean.git") @ "main"
+  ("https:" ++ "//://github.com") @ "main"
 
 @[default_target]
 lean_lib «JSP000012» where
