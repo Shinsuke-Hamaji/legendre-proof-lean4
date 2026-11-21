@@ -1,0 +1,37 @@
+name: Independent Kernel Verification
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Elan and Lean 4
+        uses: leanprover/lean-action@v1
+
+      - name: Build target library (Standard C++ Kernel)
+        run: lake build JSP000012
+
+      - name: Run lean4lean (Independent Lean-in-Lean Kernel)
+        run: lake exe lean4lean --fresh JSP-000012
+
+      - name: Setup Rust for nanoda
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Build nanoda (Independent Rust Kernel)
+        run: |
+          git clone https://github.com /tmp/nanoda_lib
+          cargo build --release --manifest-path /tmp/nanoda_lib/Cargo.toml
+
+      - name: Export environment and verify with nanoda
+        run: |
+          lake env lean --export=exported_env.txt JSP-000012.lean
+          /tmp/nanoda_lib/target/release/nanoda_bin --help
