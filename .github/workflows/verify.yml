@@ -45,5 +45,5 @@ jobs:
           cp lean-toolchain /tmp/lean4export/
           lake --dir=/tmp/lean4export build
           lake env /tmp/lean4export/.lake/build/bin/lean4export '«JSP-000012»' > exported_env.ndjson
-          echo '{"export_file_path": "exported_env.ndjson", "num_threads": 2, "permitted_axioms": ["propext", "Classical.choice", "Quot.sound"], "unpermitted_axiom_hard_error": false, "nat_extension": true, "string_extension": true}' > nanoda_config.json
+          echo '{"export_file_path": "exported_env.ndjson", "num_threads": 2, "permitted_axioms": ["propext", "Classical.choice", "Quot.sound", "Lean.trustCompiler", "Lean.ofReduceBool", "Lean.ofReduceNat"], "unpermitted_axiom_hard_error": false, "nat_extension": true, "string_extension": true}' > nanoda_config.json
           /tmp/nanoda_lib/target/release/nanoda_bin nanoda_config.json
