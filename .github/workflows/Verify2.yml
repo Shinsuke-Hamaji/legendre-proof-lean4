@@ -35,9 +35,10 @@ jobs:
         run: |
           gh repo clone leanprover/con-leche /tmp/con-leche -- --depth 1
           (cd /tmp/con-leche && lake build)
-          lake env /tmp/con-leche/.lake/build/bin/con-leche --jobs 2 '«JSP-000012»'
+          lake env /tmp/con-leche/.lake/build/bin/con-leche --jobs=2 '«JSP-000012»'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 
 
 
