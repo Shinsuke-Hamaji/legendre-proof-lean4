@@ -1,0 +1,38 @@
+name: Con-Leche Kernel Verification
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure git shortcut
+        run: git config --global url."https://github.com".insteadOf "gh:"
+
+      - name: Install Elan and Lean 4
+        run: |
+          git clone --depth 1 gh:leanprover/elan.git /tmp/elan
+          sh /tmp/elan/elan-init.sh -y --default-toolchain none
+          echo "$HOME/.elan/bin" >> $GITHUB_PATH
+
+      - name: Generate lake-manifest.json and fetch Mathlib cache
+        run: |
+          lake update
+          lake exe cache get
+
+      - name: Build JSP-000012
+        run: lake build JSP000012
+
+      - name: Build and verify with con-leche
+        run: |
+          git clone --depth 1 gh:leanprover/con-leche.git /tmp/con-leche
+          lake --dir=/tmp/con-leche build
+          lake env /tmp/con-leche/.lake/build/bin/con-leche --jobs 2 '«JSP-000012»'
