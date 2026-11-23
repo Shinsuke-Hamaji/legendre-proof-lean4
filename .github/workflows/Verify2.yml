@@ -33,6 +33,7 @@ jobs:
 
       - name: Build and verify with con-leche
         run: |
-          git clone --depth 1 gh:leanprover/con-leche.git /tmp/con-leche
-          lake --dir=/tmp/con-leche build
+          git clone --depth 1 https://github.com /tmp/con-leche
+          (cd /tmp/con-leche && lake build)
           lake env /tmp/con-leche/.lake/build/bin/con-leche --jobs 2 '«JSP-000012»'
+
