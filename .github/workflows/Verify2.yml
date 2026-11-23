@@ -31,13 +31,27 @@ jobs:
       - name: Build JSP-000012
         run: lake build JSP000012
 
+      - name: Cache con-leche build
+        id: cache-con-leche
+        uses: actions/cache@v4
+        with:
+          path: /tmp/con-leche
+          key: con-leche-build-v1
+
       - name: Build and verify with con-leche
         run: |
-          gh repo clone leanprover/con-leche /tmp/con-leche -- --depth 1
-          (cd /tmp/con-leche && lake build)
-          lake env /tmp/con-leche/.lake/build/bin/con-leche --jobs=2 '«JSP-000012»'
+          if [ "${{ steps.cache-con-leche.outputs.cache-hit }}" != "true" ]; then
+            gh repo clone leanprover/con-leche /tmp/con-leche -- --depth 1
+            (cd /tmp/con-leche && lake build)
+          fi
+          gh repo clone leanprover/lean4export /tmp/lean4export -- --depth 1
+          cp lean-toolchain /tmp/lean4export/
+          (cd /tmp/lean4export && lake build)
+          lake env /tmp/lean4export/.lake/build/bin/lean4export '«JSP-000012»' > exported_env.ndjson
+          /tmp/con-leche/.lake/build/bin/con-leche --jobs=2 exported_env.ndjson
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
 
 
 
